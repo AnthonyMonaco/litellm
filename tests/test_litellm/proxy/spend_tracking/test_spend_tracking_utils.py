@@ -19,6 +19,7 @@ import litellm
 from litellm.constants import LITELLM_TRUNCATED_PAYLOAD_FIELD, REDACTED_BY_LITELM_STRING
 from litellm.litellm_core_utils.safe_json_dumps import safe_dumps
 from litellm.proxy.spend_tracking.spend_tracking_utils import (
+    _get_response_for_spend_logs_payload,
     _get_vector_store_request_for_spend_logs_payload,
     _sanitize_request_body_for_spend_logs_payload,
 )
@@ -232,6 +233,44 @@ def test_get_vector_store_request_for_spend_logs_payload_null_input(mock_should_
     mock_should_store.return_value = False
     result = _get_vector_store_request_for_spend_logs_payload(None)
     assert result is None
+
+
+@patch(
+    "litellm.proxy.spend_tracking.spend_tracking_utils._should_store_prompts_and_responses_in_spend_logs"
+)
+def test_get_response_for_spend_logs_payload_truncates_large_base64(mock_should_store):
+    from litellm.constants import MAX_STRING_LENGTH_PROMPT_IN_DB
+
+    mock_should_store.return_value = True
+    large_text = "A" * (MAX_STRING_LENGTH_PROMPT_IN_DB + 500)
+    payload = {
+        "response": {
+            "data": [
+                {
+                    "b64_json": large_text,
+                    "other_field": "value",
+                }
+            ]
+        }
+    }
+
+    response_json = _get_response_for_spend_logs_payload(payload)
+    parsed = json.loads(response_json)
+    truncated_value = parsed["data"][0]["b64_json"]
+    assert len(truncated_value) < len(large_text)
+    assert LITELLM_TRUNCATED_PAYLOAD_FIELD in truncated_value
+    assert parsed["data"][0]["other_field"] == "value"
+
+
+@patch(
+    "litellm.proxy.spend_tracking.spend_tracking_utils._should_store_prompts_and_responses_in_spend_logs"
+)
+def test_get_response_for_spend_logs_payload_respects_store_flag(mock_should_store):
+    mock_should_store.return_value = False
+    payload = {"response": {"data": [{"b64_json": "ABC"}]}}
+
+    response_json = _get_response_for_spend_logs_payload(payload)
+    assert response_json == "{}"
 
 
 def test_safe_dumps_handles_circular_references():
