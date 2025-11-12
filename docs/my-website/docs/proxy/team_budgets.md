@@ -37,7 +37,7 @@ Track spend, set budgets for your Internal Team
 ## Setting Monthly Team Budgets
 
 ### 1. Create a team 
-- Set `max_budget=000000001` ($ value the team is allowed to spend)
+- Set `max_budget=0.000000001` ($ value the team is allowed to spend)
 - Set `budget_duration="1d"` (How frequently the budget should update)
 
 <Tabs>
