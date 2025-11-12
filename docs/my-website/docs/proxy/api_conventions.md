@@ -1,3 +1,4 @@
+import Image from '@theme/IdealImage';
 # API Route Conventions
 
 LiteLLM exposes both **OpenAI-compatible** and **LiteLLM-shortened** API routes.  
